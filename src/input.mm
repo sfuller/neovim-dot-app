@@ -86,24 +86,50 @@
 {
     CGFloat x = [event deltaX], y = [event deltaY];
 
-    if (!x && !y)
-        return;
+    if ([event phase] == NSEventPhaseBegan) {
+        mScrollDeltaX = 0;
+        mScrollDeltaY = 0;
+    }
+        
+    mScrollDeltaX += x;
+    mScrollDeltaY += y;
+  
+    // TODO: Scrolling is scaled by 10. This value makes scrolling feel good,
+    // but I have no idea what the ideal value would be. Maybe this should be
+    // tunable? -sfuller
+    CGFloat lineHeight = mCharSize.height * 0.1f;
+    CGFloat lineWidth = mCharSize.width * 0.1f;
 
-    NSPoint cellLoc = [self cellContainingEvent:event];
+    for (;;) {
+        const char *type;
+        if (mScrollDeltaY > lineHeight) {
+            type = "ScrollWheelUp";
+            mScrollDeltaY -= lineHeight;
+        }
+        else if(mScrollDeltaY < 0) {
+            type = "ScrollWheelDown";
+            mScrollDeltaY += lineHeight;
+        }
+        else if(mScrollDeltaX > lineWidth) {
+            type = "ScrollWheelLeft";
+            mScrollDeltaX -= lineWidth;
+        }
+        else if(mScrollDeltaX < 0) {
+            type = "ScrollWheelRight";
+            mScrollDeltaX += lineWidth;
+        }
+        else {
+            break;
+        }
 
-    std::stringstream ss;
+        NSPoint cellLoc = [self cellContainingEvent:event];
 
-    const char *type;
-         if (y > 0) type = "ScrollWheelUp";
-    else if (y < 0) type = "ScrollWheelDown";
-    else if (x < 0) type = "ScrollWheelRight";
-    else if (x > 0) type = "ScrollWheelLeft";
-    else assert(0);
+        std::stringstream ss;
+        addModifiedName(ss, event, type);
 
-    addModifiedName(ss, event, type);
-
-    ss << "<" << cellLoc.x << "," << cellLoc.y << ">";
-    [self vimInput:ss.str()];
+        ss << "<" << cellLoc.x << "," << cellLoc.y << ">";
+        [self vimInput:ss.str()];
+    }
 }
 
 /* Send an input string to Vim. */

@@ -36,6 +36,9 @@ class Vim;
 
     NSString *mMarkedText;
     BOOL mOptAsMeta;
+
+    CGFloat mScrollDeltaX;
+    CGFloat mScrollDeltaY;
 }
 
 - (void)cutText;
