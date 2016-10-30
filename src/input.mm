@@ -1,4 +1,5 @@
 #include <sstream>
+#include <cmath>
 #include "vim.h"
 
 #import <Cocoa/Cocoa.h>
@@ -87,36 +88,42 @@
     CGFloat x = [event deltaX], y = [event deltaY];
 
     if ([event phase] == NSEventPhaseBegan) {
-        mScrollDeltaX = 0;
-        mScrollDeltaY = 0;
+        mScrollDelta = 0;
+        mScrollIsHorizontal = std::abs(x) > std::abs(y);
     }
-        
-    mScrollDeltaX += x;
-    mScrollDeltaY += y;
+    
+    if (mScrollIsHorizontal) 
+        mScrollDelta += x;
+    else
+        mScrollDelta += y;
   
+    CGFloat minDistance = mScrollIsHorizontal ? mCharSize.width : mCharSize.height;
+    
     // TODO: Scrolling is scaled by 10. This value makes scrolling feel good,
     // but I have no idea what the ideal value would be. Maybe this should be
     // tunable? -sfuller
-    CGFloat lineHeight = mCharSize.height * 0.1f;
-    CGFloat lineWidth = mCharSize.width * 0.1f;
+    minDistance *= 0.1f;
 
+    const char* positiveScrollCommand;
+    const char* negativeScrollCommand;
+
+    if (mScrollIsHorizontal) {
+        positiveScrollCommand = "ScrollWheelLeft";
+        negativeScrollCommand = "ScrollWheelRight";
+    } else {
+        positiveScrollCommand = "ScrollWheelUp";
+        negativeScrollCommand = "ScrollWheelDown";
+    }
+    
     for (;;) {
         const char *type;
-        if (mScrollDeltaY > lineHeight) {
-            type = "ScrollWheelUp";
-            mScrollDeltaY -= lineHeight;
+        if (mScrollDelta > minDistance) {
+            type = positiveScrollCommand;
+            mScrollDelta -= minDistance;
         }
-        else if(mScrollDeltaY < 0) {
-            type = "ScrollWheelDown";
-            mScrollDeltaY += lineHeight;
-        }
-        else if(mScrollDeltaX > lineWidth) {
-            type = "ScrollWheelLeft";
-            mScrollDeltaX -= lineWidth;
-        }
-        else if(mScrollDeltaX < 0) {
-            type = "ScrollWheelRight";
-            mScrollDeltaX += lineWidth;
+        else if(mScrollDelta < 0) {
+            type = negativeScrollCommand;
+            mScrollDelta += minDistance;
         }
         else {
             break;
